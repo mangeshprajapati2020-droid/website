@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UPI Payment</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            max-width: 500px;
+            width: 100%;
+            padding: 40px;
+            position: relative;
+            overflow: visible;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .payment-section {
+            display: none;
+        }
+        
+        .payment-section.active {
+            display: block;
+        }
+        
+        .qr-container {
+            text-align: center;
+            margin: 20px 0;
+            transition: transform 400ms ease, opacity 400ms ease;
+        }
+        .qr-container.fade-out {
+            transform: scale(0.95) translateY(10px);
+            opacity: 0;
+        }
+        .qr-container.hidden {
+            display: none;
+        }
+        
+        .qr-container img {
+            max-width: 250px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            padding: 10px;
+            background: white;
+        }
+        
+        .payment-info {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        
+        .info-label {
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .info-value {
+            color: #333;
+            word-break: break-all;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+        
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+        
+        .message {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: bold;
+            display: none;
+        }
+        
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+        
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+        
+        .loader {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .loader.active {
+            display: block;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Success panel and animations */
+        .success-panel {
+            position: absolute;
+            left: 50%;
+            top: 10%;
+            transform: translate(-50%, -10%) scale(.98);
+            width: calc(100% - 40px);
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            color: white;
+            border-radius: 12px;
+            padding: 22px;
+            box-shadow: 0 12px 40px rgba(39, 174, 96, 0.3);
+            opacity: 0;
+            pointer-events: none;
+        }
+        .success-panel.active {
+            animation: popIn 600ms cubic-bezier(.2,.9,.2,1) forwards;
+            pointer-events: auto;
+        }
+        @keyframes popIn {
+            0% { opacity: 0; transform: translate(-50%, -10%) scale(.9); }
+            60% { opacity: 1; transform: translate(-50%, 0%) scale(1.03); }
+            100% { opacity: 1; transform: translate(-50%, 0%) scale(1); }
+        }
+
+        .checkmark {
+            width: 72px;
+            height: 72px;
+            margin: 0 auto 12px;
+        }
+        .checkmark svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .checkmark .path {
+            stroke-dasharray: 100;
+            stroke-dashoffset: 100;
+            animation: draw 700ms ease forwards 150ms;
+        }
+        @keyframes draw {
+            to { stroke-dashoffset: 0; }
+        }
+
+        .success-details {
+            text-align: center;
+        }
+        .success-details h2 {
+            margin-bottom: 8px;
+            font-size: 20px;
+            font-weight: 700;
+        }
+        .success-details p { margin: 6px 0; font-weight: 600; }
+        .detail-label { opacity: 0.9; font-size: 13px; color: rgba(255,255,255,0.95); }
+        .detail-value { font-size: 16px; margin-top: 4px; }
+
+        /* small responsive tweak */
+        @media (max-width: 520px) {
+            .container { padding: 24px; }
+            .success-panel { width: calc(100% - 24px); left: 50%; top: 6%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>UPI Payment</h1>
+        </div>
+        
+        <!-- Init Payment Section -->
+        <div id="initSection" class="payment-section active">
+            
+            <div class="loader" id="initLoader">
+                <div class="spinner"></div>
+            </div>
+        </div>
+        
+        <!-- Payment Display Section -->
+        <div id="paymentSection" class="payment-section">
+            <div class="payment-info">
+    
+                <div class="info-row">
+                    <span class="info-label">Amount:</span>
+                    <span class="info-value" id="paymentAmount">-</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Order ID:</span>
+                    <span class="info-value" id="orderId">-</span>
+                </div>
+               
+            </div>
+            
+            <div class="qr-container" id="qrContainer">
+                <p style="margin-bottom: 10px; color: #666;">Scan QR Code to Pay</p>
+                <img id="qrImage" src="" alt="QR Code">
+            </div>
+            
+            <div class="message" id="message"></div>
+            
+            <div class="loader" id="statusLoader">
+                <div class="spinner"></div>
+                <p style="margin-top: 10px; color: #667eea;">Waiting for payment...</p>
+            </div>
+            
+            <div class="button-group">
+                <button class="btn-primary" id="checkStatusBtn" onclick="checkPaymentStatus()">Check Status</button>
+                <button class="btn-secondary" onclick="goBack()">Back</button>
+            </div>
+        </div>
+
+        <!-- Success Panel -->
+        <div id="successPanel" class="success-panel" aria-hidden="true">
+            <div class="checkmark">
+                <svg viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <circle cx="26" cy="26" r="25" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="2"/>
+                    <path class="path" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"
+                          d="M14 27 l7 7 17-17"></path>
+                </svg>
+            </div>
+            <div class="success-details">
+                <h2>Payment Successful!</h2>
+                <p class="detail-label">Amount</p>
+                <p class="detail-value" id="successAmount">-</p>
+                <p class="detail-label">Order ID</p>
+                <p class="detail-value" id="successOrder">-</p>
+                <p class="detail-label">Transaction ID</p>
+                <p class="detail-value" id="successTxn">-</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8000'; // Change to your backend URL
+        let pollInterval;
+
+        async function initPayment() {
+            const initLoader = document.getElementById('initLoader');
+            const initSection = document.getElementById('initSection');
+            
+            try {
+                initLoader.classList.add('active');
+                
+                const response = await fetch(`${API_BASE_URL}/pay/init`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) throw new Error('Failed to initialize payment');
+                
+                const data = await response.json();
+                
+                // Display payment details
+                document.getElementById('paymentAmount').textContent = `₹${data.amount}`;
+                document.getElementById('orderId').textContent = data.orderId;
+                document.getElementById('qrImage').src = data.qrUrl;
+                
+                // Switch sections
+                initSection.classList.remove('active');
+                document.getElementById('paymentSection').classList.add('active');
+                
+                // Start polling for payment status
+                startPaymentPolling(data.orderId);
+                
+            } catch (error) {
+                showMessage(`Error: ${error.message}`, 'error');
+            } finally {
+                initLoader.classList.remove('active');
+            }
+        }
+
+        function startPaymentPolling(orderId) {
+            const statusLoader = document.getElementById('statusLoader');
+            statusLoader.classList.add('active');
+            
+            pollInterval = setInterval(() => {
+                checkPaymentStatus(orderId);
+            }, 3000); // Check every 3 seconds
+        }
+
+        async function checkPaymentStatus(orderId) {
+            if (!orderId) {
+                orderId = document.getElementById('orderId').textContent;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/pay/status/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ orderId })
+                });
+                
+                if (!response.ok) throw new Error('Failed to check payment status');
+                
+                const data = await response.json();
+                
+                if (data.paid) {
+                    clearInterval(pollInterval);
+                    document.getElementById('statusLoader').classList.remove('active');
+                    document.getElementById('checkStatusBtn').disabled = true;
+                    // Show animated success and hide QR
+                    showSuccess(data);
+                }
+                
+            } catch (error) {
+                clearInterval(pollInterval);
+                showMessage(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        function showMessage(text, type) {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = text;
+            messageEl.className = `message ${type}`;
+        }
+
+        function hideQrWithFade() {
+            const qr = document.getElementById('qrContainer');
+            // If already hidden, return
+            if (!qr || qr.classList.contains('hidden')) return;
+            qr.classList.add('fade-out');
+            qr.addEventListener('animationend', () => {
+                qr.classList.remove('fade-out');
+                qr.classList.add('hidden');
+            }, { once: true });
+        }
+
+        function showSuccess(data) {
+            // Hide small messages or loaders
+            document.getElementById('message').textContent = '';
+            document.getElementById('message').className = 'message';
+
+            // Fill success fields
+            document.getElementById('successAmount').textContent = `₹${data.amount}`;
+            document.getElementById('successOrder').textContent = data.orderId;
+            document.getElementById('successTxn').textContent = data.txnId || '-';
+
+            // Hide QR elegantly
+            hideQrWithFade();
+
+            // Activate success panel
+            const panel = document.getElementById('successPanel');
+            panel.setAttribute('aria-hidden', 'false');
+            // Slight delay so user sees fade of QR first (optional)
+            setTimeout(() => {
+                panel.classList.add('active');
+            }, 180);
+        }
+
+        function goBack() {
+            clearInterval(pollInterval);
+            document.getElementById('paymentSection').classList.remove('active');
+            document.getElementById('initSection').classList.add('active');
+            document.getElementById('message').classList.remove('success', 'error');
+            document.getElementById('statusLoader').classList.remove('active');
+            document.getElementById('checkStatusBtn').disabled = false;
+            // reset success panel and QR
+            const panel = document.getElementById('successPanel');
+            panel.classList.remove('active');
+            panel.setAttribute('aria-hidden', 'true');
+            const qr = document.getElementById('qrContainer');
+            if (qr) {
+                qr.classList.remove('hidden', 'fade-out');
+                qr.style.display = '';
+            }
+        }
+        initPayment()
+    </script>
+</body>
+</html>

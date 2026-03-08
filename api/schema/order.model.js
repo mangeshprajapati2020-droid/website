@@ -1,0 +1,50 @@
+import { Schema } from "mongoose";
+
+const orderSchema=new Schema({
+    orderId:{
+        type:String,
+        required:true
+    },
+    transection_number:{
+        type:String,
+    },
+    paymentMode:{
+        type:String,
+        required:true,
+    },
+   inProcess:{
+    type:Boolean,
+    default:true,
+   },
+   delivery_status:{
+    status:{
+        type:Boolean,
+        required:true,
+        default:false,
+    },
+    awb:{
+        type:String,
+    },
+    delivery_partner:{
+        type:String,
+    },
+    tracking_link:{
+        type:String,
+    }
+   },
+   reject:{
+    status:{
+        type:Boolean,
+    },
+    reason:{
+        type:String,
+    }
+   },
+   userId:{
+    type:String,
+    required:true,
+   },
+   status:{
+    type:String,
+   }
+})
